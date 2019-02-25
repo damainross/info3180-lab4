@@ -8,7 +8,7 @@ import os
 from app import app
 from flask import render_template, request, redirect, url_for, flash, session, abort
 from werkzeug.utils import secure_filename
-
+from .forms import UploadForm
 
 ###
 # Routing for your application.
@@ -28,19 +28,26 @@ def about():
 
 @app.route('/upload', methods=['POST', 'GET'])
 def upload():
+    form = UploadForm()
     if not session.get('logged_in'):
         abort(401)
 
     # Instantiate your form class
 
     # Validate file upload on submit
-    if request.method == 'POST':
+    if request.method == 'POST' and form.validate_on_submit():
+        img = form.upload.data
+        filename = secure_filename(img.filename)
+        img.save(os.path.join(app.config['UPLOAD_FOLDER'],filename))
+        
+        
+        
         # Get file data and save to your uploads folder
 
         flash('File Saved', 'success')
         return redirect(url_for('home'))
-
-    return render_template('upload.html')
+        #return render_template('home.html')
+    return render_template('upload.html',form=form)
 
 
 @app.route('/login', methods=['POST', 'GET'])
@@ -99,7 +106,22 @@ def add_header(response):
 def page_not_found(error):
     """Custom 404 page."""
     return render_template('404.html'), 404
+    
 
-
+def get_uploaded_images():
+    l=[]
+    rootdir = os.getcwd()
+    #print rootdir
+    for subdir, dirs, files in os.walk(rootdir + '/app/static/uploads'):
+        for file in files:
+            os.path.join(subdir, file)
+            l.append(file)
+    
+    return l
+@app.route('/files')
+def files():
+    
+    images=get_uploaded_images()
+    return render_template('files.html',images=images)
 if __name__ == '__main__':
     app.run(debug=True, host="0.0.0.0", port="8080")
